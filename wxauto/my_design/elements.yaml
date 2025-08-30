@@ -1,0 +1,339 @@
+# elements.yaml - WeChat UI selectors for wxauto RPA
+# 说明：
+# - 全量使用“描述性选择器”，不直接绑定具体 API，便于不同 Driver 复用（UIA/OCR/Mock）。
+# - Name/RegexName 多数依赖语言包（如 zh-CN），通过 lang_key 指定占位符。
+# - 建议匹配优先级：id > classname+name > name/regex > structure > ocr。
+# - notes 字段标注稳定性与场景依赖（版本/主题/DPI/状态）。
+
+version: 0.1.0
+app: WeChat
+modules:
+  main:
+    - key: main_window
+      role: window
+      strategy:
+        classname: WeChatMainWndForPC
+        # 微信主窗口标题一般为“微信”，部分版本可能缺省
+        name: 微信
+      lang_key:
+        name: WECHAT_MAIN.TITLE
+      fallbacks:
+        - type: structure
+          path: "Root -> Pane[0]"
+      notes: 依赖主版本；多开时需通过进程或可见性进一步筛选。
+
+    - key: chat_window
+      role: window
+      strategy:
+        classname: ChatWnd
+      fallbacks:
+        - type: name
+          name: ${chat_name}
+      notes: 弹出式子聊天窗口；按昵称精确匹配 name 时需和会话名一致。
+
+  navigation:
+    - key: btn_chat
+      role: button
+      strategy:
+        name: 聊天
+      lang_key:
+        name: NAV.CHAT
+      notes: 左侧竖栏按钮；Name 本地化。
+
+    - key: btn_contacts
+      role: button
+      strategy:
+        name: 通讯录
+      lang_key:
+        name: NAV.CONTACTS
+
+    - key: btn_favorites
+      role: button
+      strategy:
+        name: 收藏
+      lang_key:
+        name: NAV.FAVORITES
+
+    - key: btn_files
+      role: button
+      strategy:
+        name: 聊天文件
+      lang_key:
+        name: NAV.FILES
+
+    - key: nav_new_msg_red_dot
+      role: visual
+      strategy:
+        type: pixel
+        region_of: btn_chat
+        color: red
+        threshold: 0.6
+      notes: 基于像素检测红点，受主题/DPI/缩放影响，必要时可禁用。
+
+  session:
+    - key: search_box
+      role: edit
+      strategy:
+        name: 搜索
+        control_type: EditControl
+      lang_key:
+        name: SESSION.SEARCH
+      fallbacks:
+        - type: relative
+          of: navigation.btn_chat
+          direction: right
+          hops: 1
+
+    - key: session_list
+      role: list
+      strategy:
+        name: 会话
+        control_type: ListControl
+        search_depth: 7
+      lang_key:
+        name: SESSION.LIST
+      notes: 主会话列表容器。
+
+    - key: folded_group_list
+      role: list
+      strategy:
+        name: 折叠的群聊
+        control_type: ListControl
+        search_depth: 7
+      lang_key:
+        name: SESSION.FOLDED_GROUP
+      notes: 进入后需通过返回按钮回到主会话列表。
+
+    - key: back_button
+      role: button
+      strategy:
+        name: 返回
+      lang_key:
+        name: SESSION.BACK
+
+    - key: session_item
+      role: listitem
+      strategy:
+        control_type: ListItemControl
+        parent: session.session_list
+      fields:
+        - name: title
+          by:
+            control_type: TextControl
+            index: 0
+        - name: time
+          by:
+            control_type: TextControl
+            last: true
+        - name: mute
+          by:
+            control_type: PaneControl
+            path: "[4,1]"
+        - name: unread
+          by:
+            path: "[2,2]"
+      notes: 结构索引基于现有版本层级，可能随版本调整。
+
+    - key: pinned_filter
+      role: filter
+      strategy:
+        regex_name: re_置顶聊天
+      lang_key:
+        regex_name: SESSION.RE_PINNED
+
+    - key: unread_count_pattern
+      role: regex
+      strategy:
+        regex_name: re_条数
+      lang_key:
+        regex_name: SESSION.RE_UNREAD_COUNT
+
+    - key: search_result_panel
+      role: list
+      strategy:
+        regex_name: .*?IDS_FAV_SEARCH_RESULT.*?
+        control_type: ListControl
+      notes: 搜索结果混有“聊天记录/搜索 xxx”等条目，需过滤。
+
+  chatbox:
+    - key: msg_list
+      role: list
+      strategy:
+        name: 消息
+        control_type: ListControl
+      lang_key:
+        name: CHATBOX.MSG_LIST
+
+    - key: input_edit
+      role: edit
+      strategy:
+        control_type: EditControl
+        relative:
+          of: chatbox.msg_list
+          direction: below
+          hops: 1
+      notes: 输入框一般无 Name，需结构/相对定位。
+
+    - key: btn_send
+      role: button
+      strategy:
+        name: 发送
+      lang_key:
+        name: CHATBOX.SEND
+
+    - key: toolbar
+      role: toolbar
+      strategy:
+        control_type: ToolBarControl
+      fallbacks:
+        - type: structure
+          path: "Pane -> ToolBar"
+
+    - key: new_msg_button
+      role: button
+      strategy:
+        regex_name: re_新消息按钮
+      lang_key:
+        regex_name: CHATBOX.RE_NEW_MSG_BTN
+      notes: 出现在历史上方或列表中部的“新消息”定位器。
+
+    - key: at_menu
+      role: pane
+      strategy:
+        classname: ChatContactMenu
+        control_type: PaneControl
+      children:
+        - role: list
+          control_type: ListControl
+      notes: 仅在输入 @ 后出现的联想菜单。
+
+    - key: chat_info_entry
+      role: button
+      strategy:
+        name: 聊天信息
+      lang_key:
+        name: CHATBOX.INFO
+      notes: 进入群信息或会话信息侧边面板入口。
+
+    - key: new_msg_divider
+      role: text
+      strategy:
+        name: 以下为新消息
+      lang_key:
+        name: CHATBOX.NEW_MSG_DIVIDER
+
+  menus:
+    - key: context_menu
+      role: menu
+      strategy:
+        classname: CMenuWnd
+      fallbacks:
+        - type: control
+          control_type: MenuControl
+          classname: CMenuWnd
+      notes: 系统级右键菜单窗口。
+
+    - key: menu_paste
+      role: menuitem
+      strategy:
+        name: 粘贴
+      lang_key:
+        name: MENU.PASTE
+
+  components:
+    - key: select_contact_window
+      role: window
+      strategy:
+        classname: SelectContactWnd
+      fallbacks:
+        - type: pane
+          control_type: PaneControl
+          classname: SelectContactWnd
+
+    - key: select_contact_input
+      role: edit
+      strategy:
+        parent: components.select_contact_window
+        control_type: EditControl
+
+    - key: select_contact_list
+      role: list
+      strategy:
+        parent: components.select_contact_window
+        control_type: ListControl
+
+    - key: select_contact_checkbox
+      role: checkbox
+      strategy:
+        parent: components.select_contact_list
+        control_type: CheckBoxControl
+
+    - key: select_contact_send
+      role: button
+      strategy:
+        parent: components.select_contact_window
+        name: 发送
+      lang_key:
+        name: CHATBOX.SEND
+
+    - key: select_contact_batch_send
+      role: button
+      strategy:
+        parent: components.select_contact_window
+        regex_name: 分别发送（\d+）
+
+    - key: net_error_bar
+      role: pane
+      strategy:
+        classname: NetErrInfoTipsBarWnd
+        control_type: PaneControl
+      notes: 网络异常提示条，存在即判定告警。
+
+    - key: image_preview_window
+      role: window
+      strategy:
+        classname: ImagePreviewWnd
+
+    - key: image_preview_video_layer
+      role: pane
+      strategy:
+        classname: ImagePreviewLayerWnd
+        control_type: PaneControl
+      notes: 存在则判定为视频预览。
+
+    - key: image_preview_more
+      role: button
+      strategy:
+        name: 更多
+      lang_key:
+        name: PREVIEW.MORE
+
+    - key: image_preview_copy
+      role: menuitem
+      strategy:
+        name: 复制
+      lang_key:
+        name: MENU.COPY
+
+localization:
+  default: zh-CN
+  keys:
+    WECHAT_MAIN.TITLE: 微信
+    NAV.CHAT: 聊天
+    NAV.CONTACTS: 通讯录
+    NAV.FAVORITES: 收藏
+    NAV.FILES: 聊天文件
+    SESSION.SEARCH: 搜索
+    SESSION.LIST: 会话
+    SESSION.FOLDED_GROUP: 折叠的群聊
+    SESSION.BACK: 返回
+    SESSION.RE_PINNED: re_置顶聊天
+    SESSION.RE_UNREAD_COUNT: re_条数
+    CHATBOX.MSG_LIST: 消息
+    CHATBOX.SEND: 发送
+    CHATBOX.RE_NEW_MSG_BTN: re_新消息按钮
+    CHATBOX.INFO: 聊天信息
+    CHATBOX.NEW_MSG_DIVIDER: 以下为新消息
+    MENU.PASTE: 粘贴
+    PREVIEW.MORE: 更多
+    MENU.COPY: 复制
