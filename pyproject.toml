@@ -14,7 +14,9 @@ dependencies = [
     "pillow",
     "psutil",
     "colorama",
-    "comtypes"
+    "comtypes",
+    "websocket-client",
+    "requests"
 ]
 
 [tool.setuptools.packages.find]
