@@ -9,12 +9,12 @@ readme = "README.md"
 requires-python = ">=3.8,<=3.15"
 dependencies = [
     "tenacity",
-    "pywin32",
+    "pywin32; platform_system == 'Windows'",
     "pyperclip",
     "pillow",
     "psutil",
     "colorama",
-    "comtypes",
+    "comtypes; platform_system == 'Windows'",
     "websocket-client",
     "requests"
 ]

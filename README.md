@@ -68,10 +68,49 @@ wx.AddListenChat(nickname="张三", callback=on_message)
 
 # 移除监听
 wx.RemoveListenChat(nickname="张三")
-```
-## 交流
 
-[微信交流群](https://plus.wxauto.org/plus/#%E8%8E%B7%E5%8F%96plus)
+## 交互式协议模拟器（无需微信）
+
+本工具脚本：`tools/ws_mock_with_client.py`
+
+- **功能**
+  - 使用仓内 `RpaWsClient` 直连后端 WebSocket，无需本机微信
+  - 控制台交互：输入文本上报上行事件 `wechat_message`
+  - 自动处理下行 `command`：先发送 `ack`，再回 `command_result`
+  - 支持周期性发送事件（`--tick` 秒）用于联调
+
+- **启动**
+  - 设置环境变量（或使用命令行参数）
+    - `WS_URL`：如 `ws://127.0.0.1:8080/ws/rpa`
+    - `DEVICE_ID`：如 `wxrpa-001`
+  - 运行：
+    ```bash
+    PYTHONPATH=$(pwd) python tools/ws_mock_with_client.py --tick 0
+    # 或显式：python tools/ws_mock_with_client.py --ws-url ws://127.0.0.1:8080/ws/rpa --device-id wxrpa-001 --tick 0
+    ```
+
+- **控制台命令**
+  - 直接输入文本：发送 `wechat_message` 事件，content=该文本
+  - `/event <msgType> <text...>`：显式发送事件，`msgType=text|image|file|system`
+  - `/set msgType <type>`：设置默认消息类型
+  - `/json <envelope_json>`：发送自定义原始 JSON 报文
+  - `/help`：显示帮助；`/quit`：退出
+
+- **参数说明**
+  - `--ws-url`：WebSocket 服务端地址（未传时读取 `WS_URL`）
+  - `--device-id`：设备 ID（默认读取 `DEVICE_ID`，否则 `wxrpa-macos`）
+  - `--tick`：周期性事件间隔（秒），0 表示关闭
+  - `--type`：默认消息类型，默认 `text`
+
+- **端点与设备标识**
+  - 默认会将 `deviceId` 追加到 URL 查询参数（如 `/ws/rpa?deviceId=xxx`）
+  - `RpaWsClient` 同时会在 Header 携带 `X-Device-Id: <device_id>`（服务端需支持其一）
+
+- **msg示例**
+    ```json
+    {"eventType": "wechat_message", "data": {"messageId": "4212483504218", "from": "杨", "chatId": "全能战士测试群", "msgType": "text", "content": "@杨杨杨 开个完税证明", "raw": {"group_member_count": 3, "chat_type": "group", "chat_name": "全能战士测试群", "class": "FriendTextMessage", "id": "4212483504218", "type": "text", "attr": "friend", "content": "@杨杨杨 开个完税证明"}}}
+    ```
+  
 
 ## 最后
 如果对您有帮助，希望可以帮忙点个Star，如果您正在使用这个项目，可以将右上角的 Unwatch 点为 Watching，以便在我更新或修复某些 Bug 后即使收到反馈，感谢您的支持，非常感谢！

@@ -12,9 +12,32 @@ from typing import Optional, Dict, Any, List
 import requests
 from websocket import WebSocketApp
 
-from .logger import wxlog
-from .wx import WeChat
-from .param import WxParam
+if __package__ in (None, ""):
+    # 独立文件加载模式：提供本地回退，避免触发包级 __init__（可能依赖 comtypes）
+    import logging as _logging
+    class _WxLog:
+        def debug(self, msg: str):
+            try:
+                _logging.getLogger("wxauto.rpa").debug(msg)
+            except Exception:
+                pass
+    wxlog = _WxLog()
+
+    class WeChat:  # type: ignore
+        """占位类：仅为类型提示占位，独立运行不使用。"""
+        pass
+
+    class WxParam:  # type: ignore
+        """占位参数：仅为轮询间隔提供默认值。"""
+        LISTEN_INTERVAL = 2
+else:
+    from .logger import wxlog
+    try:
+        from .wx import WeChat  # type: ignore
+    except Exception:
+        class WeChat:  # type: ignore
+            pass
+    from .param import WxParam
 
 
 # 允许的图片 MIME 列表与大小限制（与协议 5 章一致）
